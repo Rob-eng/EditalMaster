@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  editais   Edital[]
+  grades    GradeDisponibilidade[]
+}
+
+model Edital {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  titulo      String
+  banca       String?
+  dataProva   DateTime?
+  
+  materiaisData Json?
+  
+  materias    Materia[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Materia {
+  id          String   @id @default(uuid())
+  editalId    String
+  edital      Edital   @relation(fields: [editalId], references: [id], onDelete: Cascade)
+  
+  nome        String
+  importancia String?  // "Alta", "Média", "Baixa" -> Segundo schema IA
+  
+  topicos     Topico[]
+  
+  createdAt   DateTime @default(now())
+}
+
+model Topico {
+  id             String   @id @default(uuid())
+  materiaId      String
+  materia        Materia  @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  
+  titulo         String
+  status         StatusTopico @default(PENDENTE)
+  
+  sessoes        SessaoEstudo[]
+  revisoes       Revisao[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum StatusTopico {
+  PENDENTE
+  ESTUDADO
+  REVISAO
+  ATRASADO
+  CONCLUIDO
+}
+
+model GradeDisponibilidade {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  diaSemana Int      // 0 a 6 (0 = Domingo)
+  horas     Float    
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SessaoEstudo {
+  id             String   @id @default(uuid())
+  topicoId       String
+  topico         Topico   @relation(fields: [topicoId], references: [id], onDelete: Cascade)
+  
+  dataAgendada   DateTime
+  dataRealizada  DateTime?
+  duracaoMin     Int?
+  
+  createdAt      DateTime @default(now())
+}
+
+model Revisao {
+  id             String   @id @default(uuid())
+  topicoId       String
+  topico         Topico   @relation(fields: [topicoId], references: [id], onDelete: Cascade)
+  
+  ordem          Int      
+  dataAgendada   DateTime
+  dataRealizada  DateTime?
+  
+  createdAt      DateTime @default(now())
+}

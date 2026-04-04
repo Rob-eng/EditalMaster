@@ -1,0 +1,44 @@
+
+Using defaults for unprovided options:
+
+  --ts                    TypeScript (use --js for JavaScript)
+  --no-react-compiler     No React Compiler (use --react-compiler for React Compiler)
+  --agents-md             AGENTS.md (use --no-agents-md for No AGENTS.md)
+
+Creating a new Next.js app in /Users/robsonc/Dropbox/R. SA/EditalMaster/edital-master.
+
+Using npm.
+
+Initializing project with template: app-tw 
+
+
+Installing dependencies:
+- next
+- react
+- react-dom
+
+Installing devDependencies:
+- @tailwindcss/postcss
+- @types/node
+- @types/react
+- @types/react-dom
+- eslint
+- eslint-config-next
+- tailwindcss
+- typescript
+
+
+added 359 packages, and audited 360 packages in 21s
+
+143 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+Generating route types...
+✓ Types generated successfully
+
+Initialized a git repository.
+
+Success! Created edital-master at /Users/robsonc/Dropbox/R. SA/EditalMaster/edital-master
+
