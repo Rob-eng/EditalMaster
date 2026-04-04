@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export interface EditalTopic {
     titulo: string;
     importancia_estimada: "Alta" | "Média" | "Baixa";
@@ -10,49 +8,71 @@ export interface EditalSubject {
     topicos: EditalTopic[];
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 /**
- * Serviço de parsing Inteligente via IA Gemini processando PDF diretamente.
+ * Serviço de parsing Inteligente via REST API do Gemini (mais transparente para debug).
  */
 export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
-    // Lista de modelos para tentar (em ordem de preferência)
-    const modelNames = ["gemini-1.5-flash-001", "gemini-1.5-flash", "gemini-1.5-pro"];
-    let lastError: any = null;
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    for (const modelName of modelNames) {
-        try {
-            console.log(`Tentando processar com modelo: ${modelName}...`);
-            const model = genAI.getGenerativeModel({ model: modelName });
-
-            const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
-          Diferencie regras do concurso de conteúdo programático.
-          Retorne um JSON estrito seguindo este formato:
-          [{ "disciplina": "Nome da Matéria", "topicos": [{ "titulo": "Nome do Tópico", "importancia_estimada": "Alta|Média|Baixa" }] }]
-          Responda apenas com o JSON bruto, sem blocos de código ou markdown.`;
-
-            const result = await model.generateContent([
-                prompt,
-                {
-                    inlineData: {
-                        data: pdfBase64,
-                        mimeType: "application/pdf"
-                    }
-                }
-            ]);
-
-            const response = await result.response;
-            const text = response.text().replace(/```json|```/g, "").trim();
-
-            return JSON.parse(text) as EditalSubject[];
-        } catch (e: any) {
-            console.warn(`Falha com o modelo ${modelName}:`, e.message);
-            lastError = e;
-            // Se for erro de quota ou segurança, não adianta tentar outro modelo
-            if (e.message.includes("quota") || e.message.includes("API key")) break;
-            continue; // Tenta o próximo modelo
-        }
+    if (!apiKey) {
+        throw new Error("GEMINI_API_KEY não configurada no ambiente.");
     }
 
-    throw new Error(`Todos os modelos falharam. Erro final: ${lastError?.message}`);
+    // Tentar o modelo flash via REST
+    const model = "gemini-1.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    console.log(`Iniciando chamada REST para Gemini (${model})...`);
+
+    const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
+    Diferencie regras do concurso de conteúdo programático.
+    Retorne um JSON estrito seguindo este formato:
+    [{ "disciplina": "Nome da Matéria", "topicos": [{ "titulo": "Nome do Tópico", "importancia_estimada": "Alta|Média|Baixa" }] }]
+    Responda apenas com o JSON bruto, sem blocos de código ou markdown.`;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            contents: [
+                {
+                    parts: [
+                        { text: prompt },
+                        {
+                            inline_data: {
+                                mime_type: "application/pdf",
+                                data: pdfBase64,
+                            },
+                        },
+                    ],
+                },
+            ],
+            generationConfig: {
+                response_mime_type: "application/json",
+            }
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erro na API Gemini (REST): Status ${response.status}`, errorText);
+        throw new Error(`Erro na IA: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!text) {
+        console.error("Resposta vazia da Gemini:", JSON.stringify(data));
+        throw new Error("A IA não retornou conteúdo.");
+    }
+
+    try {
+        return JSON.parse(text) as EditalSubject[];
+    } catch (e) {
+        console.error("Erro ao processar JSON da IA:", text);
+        throw new Error("Formato de resposta da IA inválido.");
+    }
 }
