@@ -1,3 +1,5 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export interface EditalTopic {
     titulo: string;
     importancia_estimada: "Alta" | "Média" | "Baixa";
@@ -8,33 +10,37 @@ export interface EditalSubject {
     topicos: EditalTopic[];
 }
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
 /**
- * Serviço de parsing Inteligente via IA com suporte a schema estrito (Structured Outputs).
- * @param pdfText Texto bruto extraído do PDF do edital.
- * @returns Um array rígido tipado com as matérias e seus tópicos.
+ * Serviço de parsing Inteligente via IA Gemini processando PDF diretamente.
  */
-export async function parseEditalWithAI(pdfText: string): Promise<EditalSubject[]> {
-    console.log("Enviando texto bruto para a IA (Stub)...");
+export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // TODO: Em produção, substituir com a integração (e.g. `openai.chat.completions.create`)
-    // Para garantir o output sem alucinações de schema usando as interfaces definidas no TypeScript
-    // com zod e a ferramenta `response_format: { type: "json_schema" }`.
+    const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
+  Diferencie regras do concurso de conteúdo programático.
+  Retorne um JSON estrito seguindo este formato:
+  [{ "disciplina": "Nome da Matéria", "topicos": [{ "titulo": "Nome do Tópico", "importancia_estimada": "Alta|Média|Baixa" }] }]
+  Responda apenas com o JSON bruto, sem blocos de código ou markdown.`;
 
-    return [
+    const result = await model.generateContent([
+        prompt,
         {
-            disciplina: "Direito Constitucional",
-            topicos: [
-                { titulo: "Direitos Fundamentais", importancia_estimada: "Alta" },
-                { titulo: "Poder Executivo", importancia_estimada: "Média" }
-            ]
-        },
-        {
-            disciplina: "Língua Portuguesa",
-            topicos: [
-                { titulo: "Compreensão e Interpretação de Textos", importancia_estimada: "Alta" },
-                { titulo: "Concordância Verbal e Nominal", importancia_estimada: "Alta" },
-                { titulo: "Emprego da Crase", importancia_estimada: "Média" }
-            ]
+            inlineData: {
+                data: pdfBase64,
+                mimeType: "application/pdf"
+            }
         }
-    ];
+    ]);
+
+    const response = await result.response;
+    const text = response.text().replace(/```json|```/g, "").trim();
+
+    try {
+        return JSON.parse(text) as EditalSubject[];
+    } catch (e) {
+        console.error("Erro ao fazer parse do JSON da IA:", text);
+        throw new Error("A IA retornou um formato inválido.");
+    }
 }

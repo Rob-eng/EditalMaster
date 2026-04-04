@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { parseEditalWithAI } from '@/lib/ai/parser';
+import { auth } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
@@ -10,23 +17,37 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
-        // Idealmente usaríamos algo como `pdf-parse`
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
 
-        // Abstração da lógica para obter o texto do PDF
-        const mockTextContent = `Simulando extração de dados do edital ${file.name} com ${buffer.length} bytes...`;
+        // Processamento real via Gemini
+        const parsedData = await parseEditalWithAI(base64);
 
-        // Utiliza parser estrito da IA garantindo o contrato definido
-        const parsedData = await parseEditalWithAI(mockTextContent);
+        // Persistência no Banco de Dados via Transação
+        const edital = await prisma.$transaction(async (tx) => {
+            const newEdital = await tx.edital.create({
+                data: {
+                    userId: session.user?.id!,
+                    titulo: file.name.replace('.pdf', ''),
+                    banca: "IA Extracted",
+                    materias: {
+                        create: parsedData.map((m) => ({
+                            nome: m.disciplina,
+                            importancia: "Alta", // IA simplificada
+                            topicos: {
+                                create: m.topicos.map((t) => ({
+                                    titulo: t.titulo,
+                                    status: "PENDENTE",
+                                })),
+                            },
+                        })),
+                    },
+                },
+            });
+            return newEdital;
+        });
 
-        // WIP: Aqui o Prisma seria chamado para salvar no banco
-        // const novoEdital = await prisma.edital.create({ ... })
-        // for (const disciplina of parsedData) {
-        //    await prisma.materia.create({ ... })
-        // }
-
-        return NextResponse.json({ success: true, data: parsedData });
+        return NextResponse.json({ success: true, data: edital });
     } catch (error) {
         console.error('Erro na Ingestão:', error);
         return NextResponse.json({ error: 'Erro interno ao processar o Edital.' }, { status: 500 });

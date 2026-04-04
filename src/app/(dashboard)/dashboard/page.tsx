@@ -3,45 +3,38 @@ import { StudyAnalytics } from "@/components/features/dashboard/StudyAnalytics";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
-const MOCK_DATA = [
-    {
-        id: "1",
-        disciplina: "Direito Constitucional",
-        topicos: [
-            { id: "t1", titulo: "Direitos Fundamentais", status: "ESTUDADO" as const },
-            { id: "t2", titulo: "Poder Executivo", status: "REVISAO" as const },
-            { id: "t3", titulo: "Poder Legislativo", status: "PENDENTE" as const },
-            { id: "t4", titulo: "Controle de Constitucionalidade", status: "PENDENTE" as const },
-        ]
-    },
-    {
-        id: "2",
-        disciplina: "Direito Administrativo",
-        topicos: [
-            { id: "t5", titulo: "Organização Administrativa", status: "CONCLUIDO" as const },
-            { id: "t6", titulo: "Atos Administrativos", status: "ESTUDADO" as const },
-            { id: "t7", titulo: "Licitações", status: "ATRASADO" as const },
-        ]
-    },
-    {
-        id: "3",
-        disciplina: "Língua Portuguesa",
-        topicos: [
-            { id: "t8", titulo: "Sintaxe da Oração", status: "ESTUDADO" as const },
-            { id: "t9", titulo: "Pontuação", status: "PENDENTE" as const },
-        ]
+export default async function DashboardPage() {
+    const session = await auth();
+    if (!session?.user?.id) {
+        redirect("/login");
     }
-];
 
-export default function DashboardPage() {
+    // Busca o edital mais recente do usuário
+    const edital = await prisma.edital.findFirst({
+        where: { userId: session.user.id },
+        include: {
+            materias: {
+                include: {
+                    topicos: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const materias = edital?.materias || [];
+
     return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">O que estudar hoje?</h1>
                     <p className="text-muted-foreground mt-1">
-                        Sexta-feira, 3 de Abril - Você tem 4h disponíveis hoje.
+                        Visualize seu progresso e mantenha o ritmo.
                     </p>
                 </div>
                 <Link href="/ingestao">
@@ -52,16 +45,34 @@ export default function DashboardPage() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {MOCK_DATA.map((subject) => (
-                        <SubjectCard key={subject.id} disciplina={subject.disciplina} topicos={subject.topicos} />
-                    ))}
+            {materias.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {materias.map((materia) => (
+                            <SubjectCard
+                                key={materia.id}
+                                disciplina={materia.nome}
+                                topicos={materia.topicos.map(t => ({
+                                    id: t.id,
+                                    titulo: t.titulo,
+                                    status: t.status as any
+                                }))}
+                            />
+                        ))}
+                    </div>
+                    <div>
+                        <StudyAnalytics />
+                    </div>
                 </div>
-                <div>
-                    <StudyAnalytics />
+            ) : (
+                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-xl border-muted-foreground/20">
+                    <h3 className="text-xl font-medium">Nenhum edital encontrado</h3>
+                    <p className="text-muted-foreground mb-6">Carregue um edital para começar seu planejamento.</p>
+                    <Link href="/ingestao">
+                        <Button>Carregar Primeiro Edital</Button>
+                    </Link>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
