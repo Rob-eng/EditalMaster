@@ -17,7 +17,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
  */
 export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
     try {
-        // Tentando o modelo mais estável
+        // Tentamos o Flash 1.5 mais básico primeiro
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
@@ -41,14 +41,18 @@ export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubjec
 
         return JSON.parse(text) as EditalSubject[];
     } catch (e: any) {
-        console.error("Erro na Gemini API:", e.message);
+        console.error("DEBUG: Erro ao chamar o modelo gemini-1.5-flash:", e.message);
 
-        // Log para descobrir quais modelos esta chave pode usar
+        // Diagnóstico: Listar o que realmente podemos usar
         try {
-            console.log("Tentando descobrir modelos disponíveis...");
-            // Em algumas versões do SDK, listModels não está direto no genAI
-            // Mas podemos tentar inferir ou usar um modelo ultra-seguro
-        } catch (err) { }
+            const modelsResult = await (genAI as any).listModels();
+            if (modelsResult && modelsResult.models) {
+                const names = modelsResult.models.map((m: any) => m.name).join(", ");
+                console.log("LOG DIAGNÓSTICO - Modelos permitidos para sua chave:", names);
+            }
+        } catch (diagError) {
+            console.error("LOG DIAGNÓSTICO - Falha ao listar modelos:", diagError);
+        }
 
         throw e;
     }
