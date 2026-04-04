@@ -17,13 +17,11 @@ export async function saveAvailability(availability: any) {
             where: { userId }
         }),
         prisma.gradeDisponibilidade.createMany({
-            data: Object.entries(availability).flatMap(([dia, horas]: [string, any]) =>
-                horas.map((hora: number) => ({
-                    userId,
-                    diaSemana: parseInt(dia),
-                    horaInicio: hora,
-                }))
-            )
+            data: Object.entries(availability).map(([dia, horas]: [string, any]) => ({
+                userId,
+                diaSemana: parseInt(dia),
+                horas: parseFloat(horas),
+            }))
         })
     ]);
 
