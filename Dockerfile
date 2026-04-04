@@ -20,6 +20,7 @@ COPY . .
 
 # Você deve ter `output: "standalone"` configurado em next.config.ts
 ENV NEXT_TELEMETRY_DISABLED 1
+RUN npx prisma generate
 RUN npm run build
 
 # Fase 3: Produção
