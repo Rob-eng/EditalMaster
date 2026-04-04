@@ -15,14 +15,14 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 /**
  * Serviço de parsing Inteligente via IA Gemini processando PDF diretamente.
  */
-export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
     const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
-  Diferencie regras do concurso de conteúdo programático.
-  Retorne um JSON estrito seguindo este formato:
-  [{ "disciplina": "Nome da Matéria", "topicos": [{ "titulo": "Nome do Tópico", "importancia_estimada": "Alta|Média|Baixa" }] }]
-  Responda apenas com o JSON bruto, sem blocos de código ou markdown.`;
+      Diferencie regras do concurso de conteúdo programático.
+      Retorne um JSON estrito seguindo este formato:
+      [{ "disciplina": "Nome da Matéria", "topicos": [{ "titulo": "Nome do Tópico", "importancia_estimada": "Alta|Média|Baixa" }] }]
+      Responda apenas com o JSON bruto, sem blocos de código ou markdown.`;
 
     const result = await model.generateContent([
         prompt,
@@ -37,10 +37,17 @@ export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubjec
     const response = await result.response;
     const text = response.text().replace(/```json|```/g, "").trim();
 
+    return JSON.parse(text) as EditalSubject[];
+} catch (e: any) {
+    // Log dos modelos disponíveis para depuração se falhar
     try {
-        return JSON.parse(text) as EditalSubject[];
-    } catch (e) {
-        console.error("Erro ao fazer parse do JSON da IA:", text);
-        throw new Error("A IA retornou um formato inválido.");
+        const models = await genAI.listModels();
+        console.log("Modelos disponíveis para esta chave:", models.models.map(m => m.name).join(", "));
+    } catch (listError) {
+        console.error("Não foi possível listar os modelos:", listError);
     }
+
+    console.error("Erro detalhado na Gemini API:", e.message);
+    throw e;
+}
 }
