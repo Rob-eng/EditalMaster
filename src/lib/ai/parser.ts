@@ -16,7 +16,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
  * Serviço de parsing Inteligente via IA Gemini processando PDF diretamente.
  */
 export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
   Diferencie regras do concurso de conteúdo programático.
