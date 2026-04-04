@@ -16,23 +16,27 @@ const DIAS_SEMANA = [
     { id: 6, nome: "Sábado" },
 ];
 
-export default function AvailabilityGrid() {
-    const [availability, setAvailability] = useState<{ [key: number]: number }>({
-        1: 4, // Seg - 4h
-        2: 4, // Ter - 4h
-        3: 4, // Qua - 4h
-        4: 4, // Qui - 4h
-        5: 4, // Sex - 4h
-    });
+import { saveAvailability } from "@/lib/actions/agenda-actions";
+
+export default function AvailabilityGrid({ initialData = {} }: { initialData?: { [key: number]: number } }) {
+    const [availability, setAvailability] = useState<{ [key: number]: number }>(initialData);
+    const [isSaving, setIsSaving] = useState(false);
 
     const handleUpdateHours = (id: number, hours: string) => {
         const val = parseFloat(hours) || 0;
         setAvailability((prev) => ({ ...prev, [id]: val }));
     };
 
-    const handleSave = () => {
-        console.log("Saving availability:", availability);
-        alert("Grade de disponibilidade salva com sucesso!");
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveAvailability(availability);
+            alert("Grade de disponibilidade salva com sucesso!");
+        } catch (error) {
+            alert("Erro ao salvar disponibilidade.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -64,9 +68,9 @@ export default function AvailabilityGrid() {
                     </div>
 
                     <div className="flex justify-end pt-4">
-                        <Button onClick={handleSave} className="gap-2 rounded-full px-8">
+                        <Button onClick={handleSave} disabled={isSaving} className="gap-2 rounded-full px-8">
                             <Save className="h-4 w-4" />
-                            Salvar Alterações
+                            {isSaving ? "Salvando..." : "Salvar Alterações"}
                         </Button>
                     </div>
                 </CardContent>
