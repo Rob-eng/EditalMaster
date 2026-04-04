@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -11,12 +12,16 @@ export default function Home() {
           Sua plataforma de gestão de estudos inteligente focada em aprovação.
         </p>
         <div className="flex gap-4">
-          <Button size="lg" className="rounded-full shadow-lg">
-            Começar Ingestão de Edital
-          </Button>
-          <Button variant="outline" size="lg" className="rounded-full">
-            Configurar Agenda
-          </Button>
+          <Link href="/ingestao">
+            <Button size="lg" className="rounded-full shadow-lg">
+              Começar Ingestão de Edital
+            </Button>
+          </Link>
+          <Link href="/agenda">
+            <Button variant="outline" size="lg" className="rounded-full">
+              Configurar Agenda
+            </Button>
+          </Link>
         </div>
       </div>
     </main>
