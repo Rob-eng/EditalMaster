@@ -184,3 +184,22 @@ export async function updateTopicoTitle(topicId: string, titulo: string) {
     revalidatePath("/dashboard");
 }
 
+export async function joinMaterias(sourceMateriaId: string, targetMateriaId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    // Move todos os tópicos da origem para o destino
+    await prisma.topico.updateMany({
+        where: { materiaId: sourceMateriaId },
+        data: { materiaId: targetMateriaId }
+    });
+
+    // Remove a matéria de origem
+    await prisma.materia.delete({
+        where: { id: sourceMateriaId }
+    });
+
+    revalidatePath("/dashboard");
+}
+
+

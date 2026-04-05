@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle } from "@/lib/actions/study-actions";
+import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle, joinMaterias } from "@/lib/actions/study-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -359,12 +359,12 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                         <Label className="text-xs uppercase font-black text-muted-foreground mt-2">Personalizado</Label>
                         <div className="flex items-center gap-2">
                             <Popover>
-                                <PopoverTrigger asChild>
+                                <PopoverTrigger render={
                                     <Button variant="outline" className="flex-1 justify-start gap-2 h-10 font-bold">
                                         <CalendarIcon className="h-4 w-4" />
                                         {customDate ? format(customDate, "dd 'de' MMMM", { locale: ptBR }) : "Escolher data"}
                                     </Button>
-                                </PopoverTrigger>
+                                } />
                                 <PopoverContent className="w-auto p-0" align="start">
                                     <Calendar
                                         mode="single"
