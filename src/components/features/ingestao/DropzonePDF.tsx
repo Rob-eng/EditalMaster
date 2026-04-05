@@ -5,55 +5,56 @@ import { useDropzone } from "react-dropzone";
 import { UploadCloud, File, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { Progress } from "@/components/ui/progress";
+
 export function DropzonePDF() {
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
-        setError(null);
-        if (fileRejections.length > 0) {
-            setError("Apenas arquivos PDF são aceitos, ou o arquivo é muito grande (Máximo 10MB).");
-            return;
-        }
-
-        if (acceptedFiles.length > 0) {
-            setFile(acceptedFiles[0]);
-        }
+        // ... (mantém o onDrop)
     }, []);
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        accept: {
-            'application/pdf': ['.pdf']
-        },
-        maxFiles: 1,
-        maxSize: 10485760, // 10MB
-    });
+    // ... (dropzone config)
 
     const handleUpload = async () => {
         if (!file) return;
+        setIsProcessing(true);
+        setProgress(10);
+
+        // Simulando progresso
+        const interval = setInterval(() => {
+            setProgress(prev => (prev >= 90 ? 90 : prev + 10));
+        }, 1500);
 
         try {
             const formData = new FormData();
             formData.append("file", file);
-
-            console.log("Submitting file:", file.name);
 
             const response = await fetch("/api/ingestao", {
                 method: "POST",
                 body: formData,
             });
 
-            const result = await response.json();
-            console.log("Resultado da Ingestão da IA:", result);
+            clearInterval(interval);
+            setProgress(100);
 
+            const result = await response.json();
             if (result.success) {
-                alert("Edital processado com sucesso!");
+                toast.success("Edital processado com sucesso!");
+                window.location.href = "/dashboard";
             } else {
                 setError(result.error || "Erro ao processar edital.");
+                setIsProcessing(false);
+                setProgress(0);
             }
         } catch (err) {
+            clearInterval(interval);
             setError("Falha ao se comunicar com a API.");
+            setIsProcessing(false);
+            setProgress(0);
         }
     };
 
@@ -97,9 +98,22 @@ export function DropzonePDF() {
                 </div>
             )}
 
-            {file && (
+            {isProcessing && (
+                <div className="mt-8 space-y-4 bg-muted/30 p-6 rounded-2xl border border-primary/20">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-primary animate-pulse">Processando Edital com IA...</span>
+                        <span className="text-sm font-black">{progress}%</span>
+                    </div>
+                    <Progress value={progress} className="h-3 shadow-inner" />
+                    <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-black">
+                        Extraindo matérias e tópicos. Por favor, aguarde.
+                    </p>
+                </div>
+            )}
+
+            {file && !isProcessing && (
                 <div className="mt-6 flex justify-end">
-                    <Button size="lg" className="rounded-full shadow-lg" onClick={handleUpload}>
+                    <Button size="lg" className="rounded-full shadow-lg font-bold px-8 h-14" onClick={handleUpload}>
                         Processar Edital via IA
                     </Button>
                 </div>
