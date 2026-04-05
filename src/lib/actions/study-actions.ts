@@ -52,7 +52,7 @@ export async function markAsReadWithReview(topicId: string, daysToReview: number
     // Grava histórico de leitura
     await prisma.sessaoEstudo.create({
         data: {
-            topicoId,
+            topicoId: topicId,
             dataAgendada: dataLeitura,
             dataRealizada: dataLeitura,
             duracaoMin: 0 // Pode ser expandido no futuro
@@ -94,7 +94,7 @@ export async function completeReview(topicId: string, reviewNumber: 1 | 2, nextR
     // Grava histórico de revisão
     await prisma.revisao.create({
         data: {
-            topicoId,
+            topicoId: topicId,
             ordem: reviewNumber,
             dataAgendada: now, // Simplificado
             dataRealizada: now
@@ -121,7 +121,7 @@ export async function updateTopicPerformance(topicId: string, data: { questoesRe
     // Grava histórico de performance via SessaoEstudo (marcando como questões)
     await prisma.sessaoEstudo.create({
         data: {
-            topicoId,
+            topicoId: topicId,
             dataAgendada: new Date(),
             dataRealizada: new Date(),
             duracaoMin: data.questoesResolvidas // Usamos duracaoMin para guardar Qtd Questões temporariamente ou campos JSON no futuro

@@ -4,8 +4,8 @@ import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud, File, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 export function DropzonePDF() {
     const [file, setFile] = useState<File | null>(null);
@@ -14,17 +14,31 @@ export function DropzonePDF() {
     const [progress, setProgress] = useState(0);
 
     const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
-        // ... (mantém o onDrop)
+        setError(null);
+        if (fileRejections.length > 0) {
+            setError("Apenas arquivos PDF são aceitos, ou o arquivo é muito grande (Máximo 10MB).");
+            return;
+        }
+
+        if (acceptedFiles.length > 0) {
+            setFile(acceptedFiles[0]);
+        }
     }, []);
 
-    // ... (dropzone config)
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            'application/pdf': ['.pdf']
+        },
+        maxFiles: 1,
+        maxSize: 10485760, // 10MB
+    });
 
     const handleUpload = async () => {
         if (!file) return;
         setIsProcessing(true);
         setProgress(10);
 
-        // Simulando progresso
         const interval = setInterval(() => {
             setProgress(prev => (prev >= 90 ? 90 : prev + 10));
         }, 1500);
@@ -51,7 +65,7 @@ export function DropzonePDF() {
                 setProgress(0);
             }
         } catch (err) {
-            clearInterval(interval);
+            if (interval) clearInterval(interval);
             setError("Falha ao se comunicar com a API.");
             setIsProcessing(false);
             setProgress(0);
@@ -74,7 +88,7 @@ export function DropzonePDF() {
                             <p className="font-medium text-lg">{file.name}</p>
                             <p className="text-sm text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setFile(null); }}>
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setFile(null); }} disabled={isProcessing}>
                             Remover Arquivo
                         </Button>
                     </div>
