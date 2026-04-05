@@ -29,12 +29,12 @@ export default async function DashboardPage() {
     const materias = edital?.materias || [];
 
     // Cálculo de Analytics Real
-    const allTopicos = materias.flatMap(m => m.topicos);
+    const allTopicos = materias.flatMap((m: any) => m.topicos);
     const stats = {
-        CONCLUIDO: allTopicos.filter(t => t.status === "CONCLUIDO").length,
-        ESTUDADO: allTopicos.filter(t => t.status === "ESTUDADO").length,
-        REVISAO: allTopicos.filter(t => t.status === "REVISAO").length,
-        PENDENTE: allTopicos.filter(t => t.status === "PENDENTE" || t.status === "ATRASADO").length,
+        CONCLUIDO: allTopicos.filter((t: any) => t.status === "CONCLUIDO").length,
+        ESTUDADO: allTopicos.filter((t: any) => t.status === "ESTUDADO").length,
+        REVISAO: allTopicos.filter((t: any) => t.status === "REVISAO").length,
+        PENDENTE: allTopicos.filter((t: any) => t.status === "PENDENTE" || t.status === "ATRASADO").length,
     };
 
     const analyticsData = [

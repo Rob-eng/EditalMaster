@@ -21,8 +21,6 @@ export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubjec
     const model = "gemini-flash-latest"; // Alias mais flexível e estável para cotas gratuitas
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    console.log(`Iniciando chamada REST para Gemini (${model})...`);
-
     const prompt = `Analise este edital em anexo e extraia o conteúdo programático (matérias e tópicos). 
     Diferencie regras do concurso de conteúdo programático.
     Retorne um JSON estrito seguindo este formato:
