@@ -28,40 +28,59 @@ export default async function DashboardPage() {
 
     const materias = edital?.materias || [];
 
+    // Cálculo de Analytics Real
+    const allTopicos = materias.flatMap(m => m.topicos);
+    const stats = {
+        CONCLUIDO: allTopicos.filter(t => t.status === "CONCLUIDO").length,
+        ESTUDADO: allTopicos.filter(t => t.status === "ESTUDADO").length,
+        REVISAO: allTopicos.filter(t => t.status === "REVISAO").length,
+        PENDENTE: allTopicos.filter(t => t.status === "PENDENTE" || t.status === "ATRASADO").length,
+    };
+
+    const analyticsData = [
+        { name: "Concluído", value: stats.CONCLUIDO, color: "#22c55e" },
+        { name: "Estudado", value: stats.ESTUDADO, color: "#3b82f6" },
+        { name: "Revisão", value: stats.REVISAO, color: "#f97316" },
+        { name: "Pendente", value: stats.PENDENTE, color: "#94a3b8" },
+    ];
+
     return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">O que estudar hoje?</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Visualize seu progresso e mantenha o ritmo.
+                    <h1 className="text-4xl font-black tracking-tighter">O que estudar hoje?</h1>
+                    <p className="text-muted-foreground mt-2 font-medium">
+                        Seu progresso real baseado no edital carregado.
                     </p>
                 </div>
                 <Link href="/ingestao">
-                    <Button className="rounded-full gap-2 shadow-sm">
-                        <PlusCircle className="h-4 w-4" />
+                    <Button className="rounded-full gap-2 shadow-xl hover:scale-105 transition-all h-12 px-6">
+                        <PlusCircle className="h-5 w-5" />
                         Novo Edital
                     </Button>
                 </Link>
             </div>
 
             {materias.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {materias.map((materia) => (
                             <SubjectCard
                                 key={materia.id}
                                 disciplina={materia.nome}
+                                importancia={materia.importancia || "Média"}
                                 topicos={materia.topicos.map(t => ({
                                     id: t.id,
                                     titulo: t.titulo,
-                                    status: t.status as any
+                                    status: t.status as any,
+                                    questoesResolvidas: t.questoesResolvidas,
+                                    acertos: t.acertos
                                 }))}
                             />
                         ))}
                     </div>
-                    <div>
-                        <StudyAnalytics />
+                    <div className="lg:col-span-1">
+                        <StudyAnalytics data={analyticsData} />
                     </div>
                 </div>
             ) : (
