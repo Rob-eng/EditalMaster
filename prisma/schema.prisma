@@ -98,6 +98,12 @@ model Topico {
   questoesResolvidas Int @default(0)
   acertos        Int @default(0)
   
+  dataLeitura    DateTime?
+  dataRevisao1   DateTime?
+  dataRevisao2   DateTime?
+  rev1Concluida  Boolean @default(false)
+  rev2Concluida  Boolean @default(false)
+  
   sessoes        SessaoEstudo[]
   revisoes       Revisao[]
   
