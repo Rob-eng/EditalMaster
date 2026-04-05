@@ -38,7 +38,7 @@ export async function markAsReadWithReview(topicId: string, daysToReview: number
             dataRevisao2,
             rev1Concluida: false,
             rev2Concluida: false
-        }
+        } as any
     });
 
     revalidatePath("/dashboard");
@@ -54,7 +54,7 @@ export async function completeReview(topicId: string, reviewNumber: 1 | 2) {
 
     await prisma.topico.update({
         where: { id: topicId },
-        data: updateData
+        data: updateData as any
     });
 
     revalidatePath("/dashboard");
@@ -70,7 +70,7 @@ export async function updateTopicPerformance(topicId: string, data: { questoesRe
             questoesResolvidas: Number(data.questoesResolvidas),
             acertos: Number(data.acertos),
             status: "CONCLUIDO" as StatusTopico
-        }
+        } as any
     });
 
     revalidatePath("/dashboard");

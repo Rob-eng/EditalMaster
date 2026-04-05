@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         subject: m.nome,
         acertos: m.topicos.reduce((acc: number, t: any) => acc + (t.acertos || 0), 0),
         total: m.topicos.reduce((acc: number, t: any) => acc + (t.questoesResolvidas || 0), 0),
-    })).filter(p => p.total > 0);
+    })).filter((p: any) => p.total > 0);
 
     return (
         <div className="flex flex-col gap-8">
