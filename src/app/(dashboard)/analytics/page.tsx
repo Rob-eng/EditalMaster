@@ -107,10 +107,6 @@ export default async function AnalyticsPage() {
                         </CardTitle>
                         <CardDescription>Quantidade de questões vs acertos realizados.</CardDescription>
                     </CardHeader>
-                    import {EvolutionChart} from "@/components/features/analytics/Charts";
-
-                    // ... (Rest of the component logic remains same until return)
-
                     <CardContent className="h-[400px] pt-6">
                         <EvolutionChart data={chartData} />
                     </CardContent>
