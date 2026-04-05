@@ -33,7 +33,7 @@ export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubjec
         console.error("LOG DIAGNÓSTICO - Erro na listagem:", err);
     }
 
-    const model = "gemini-1.5-flash"; // Nome padrão
+    const model = "gemini-2.0-flash"; // Confirmado via log diagnóstico
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     console.log(`Iniciando chamada REST para Gemini (${model})...`);
