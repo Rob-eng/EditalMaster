@@ -70,7 +70,7 @@ export function StudyAnalytics({ data, performanceData = [] }: StudyAnalyticsPro
                     <CardContent>
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={performanceData} layout="vertical" margin={{ left: -20, right: 20 }}>
+                                <BarChart data={performanceData} layout="vertical" margin={{ left: -20, right: 40 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.1} />
                                     <XAxis type="number" hide />
                                     <YAxis
@@ -82,10 +82,23 @@ export function StudyAnalytics({ data, performanceData = [] }: StudyAnalyticsPro
                                     />
                                     <Tooltip
                                         cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                const percent = Math.round((data.acertos / data.total) * 100);
+                                                return (
+                                                    <div className="bg-white p-3 rounded-lg shadow-xl border text-[10px]">
+                                                        <p className="font-bold border-b pb-1 mb-1">{data.subject}</p>
+                                                        <p className="text-muted-foreground">Total: {data.total}</p>
+                                                        <p className="text-green-600 font-bold text-xs">Acertos: {data.acertos} ({percent}%)</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
                                     />
-                                    <Bar dataKey="total" fill="#e2e8f0" radius={[0, 4, 4, 0]} barSize={12} />
-                                    <Bar dataKey="acertos" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={12} />
+                                    <Bar dataKey="total" fill="#f1f5f9" radius={[0, 4, 4, 0]} barSize={14} />
+                                    <Bar dataKey="acertos" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={14} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
