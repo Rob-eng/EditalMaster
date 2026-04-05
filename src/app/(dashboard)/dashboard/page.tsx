@@ -74,7 +74,12 @@ export default async function DashboardPage() {
                                     titulo: t.titulo,
                                     status: t.status as any,
                                     questoesResolvidas: t.questoesResolvidas,
-                                    acertos: t.acertos
+                                    acertos: t.acertos,
+                                    dataLeitura: t.dataLeitura,
+                                    dataRevisao1: t.dataRevisao1,
+                                    dataRevisao2: t.dataRevisao2,
+                                    rev1Concluida: t.rev1Concluida,
+                                    rev2Concluida: t.rev2Concluida
                                 }))}
                             />
                         ))}

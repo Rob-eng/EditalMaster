@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, Clock, ChevronRight, BarChart3 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { CheckCircle2, Circle, Clock, ChevronRight, BarChart3, CalendarDays } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateTopicStatus, updateTopicPerformance } from "@/lib/actions/study-actions";
+import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview } from "@/lib/actions/study-actions";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Topic {
     id: string;
@@ -18,6 +20,11 @@ interface Topic {
     status: "PENDENTE" | "ESTUDADO" | "REVISAO" | "ATRASADO" | "CONCLUIDO";
     questoesResolvidas?: number;
     acertos?: number;
+    dataLeitura?: Date | string;
+    dataRevisao1?: Date | string;
+    rev1Concluida?: boolean;
+    dataRevisao2?: Date | string;
+    rev2Concluida?: boolean;
 }
 
 interface SubjectCardProps {
@@ -28,6 +35,7 @@ interface SubjectCardProps {
 
 export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardProps) {
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+    const [topicToRead, setTopicToRead] = useState<Topic | null>(null);
     const [questoes, setQuestoes] = useState("");
     const [acertos, setAcertos] = useState("");
     const [isSaving, setIsSaving] = useState(false);
@@ -36,7 +44,8 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
     const concluido = topicos.filter(t => t.status === "CONCLUIDO" || t.status === "ESTUDADO").length;
     const porcentagem = total > 0 ? Math.round((concluido / total) * 100) : 0;
 
-    const getStatusIcon = (status: Topic["status"]) => {
+    const getStatusIcon = (status: Topic["status"], rev1?: boolean) => {
+        if (status === "ESTUDADO" && !rev1) return <Clock className="h-4 w-4 text-amber-500" />;
         switch (status) {
             case "CONCLUIDO": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
             case "ESTUDADO": return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
@@ -57,110 +66,179 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
             setSelectedTopic(null);
             setQuestoes("");
             setAcertos("");
-            // toast.success("Progresso salvo!");
+            toast.success("Desempenho salvo!");
         } catch (error) {
-            console.error(error);
+            toast.error("Erro ao salvar.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleMarkAsRead = async (days: number) => {
+        if (!topicToRead) return;
+        setIsSaving(true);
+        try {
+            await markAsReadWithReview(topicToRead.id, days);
+            setTopicToRead(null);
+            toast.success(`Leitura salva! Revisão agendada em ${days} dia(s).`);
+        } catch (error) {
+            toast.error("Erro ao agendar revisão.");
         } finally {
             setIsSaving(false);
         }
     };
 
     return (
-        <Dialog>
-            <DialogTrigger render={
-                <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 border-l-primary group">
-                    <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{disciplina}</CardTitle>
-                                <CardDescription>{topicos.length} tópicos extraídos</CardDescription>
-                            </div>
-                            <Badge variant={importancia === "Alta" ? "default" : "outline"} className="rounded-full">
-                                {porcentagem}%
-                            </Badge>
-                        </div>
-                        <Progress value={porcentagem} className="h-2 mt-4" />
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        <div className="space-y-3">
-                            {topicos.slice(0, 3).map((topico) => (
-                                <div key={topico.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                                    {getStatusIcon(topico.status)}
-                                    <span className="text-sm font-medium truncate flex-1">{topico.titulo}</span>
+        <>
+            <Dialog>
+                <DialogTrigger render={
+                    <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 border-l-primary group">
+                        <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{disciplina}</CardTitle>
+                                    <CardDescription>{topicos.length} tópicos extraídos</CardDescription>
                                 </div>
-                            ))}
-                            <div className="flex items-center justify-center pt-2 text-xs font-semibold text-primary gap-1">
-                                Ver tudo e atualizar <ChevronRight className="h-3 w-3" />
+                                <Badge variant={importancia === "Alta" ? "default" : "outline"} className="rounded-full">
+                                    {porcentagem}%
+                                </Badge>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            } />
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">{disciplina}</DialogTitle>
-                    <DialogDescription>Gerencie seu progresso em cada tópico desta matéria.</DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 mt-4">
-                    {topicos.map((topico) => (
-                        <div key={topico.id} className="flex items-center justify-between p-4 rounded-xl border bg-card hover:bg-accent/50 transition-all border-l-4 border-l-muted">
-                            <div className="flex flex-col gap-1 max-w-[60%]">
-                                <span className="font-semibold text-sm leading-tight">{topico.titulo}</span>
-                                <div className="flex gap-2 items-center">
-                                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                                        {topico.status}
-                                    </Badge>
-                                    {topico.questoesResolvidas ? (
-                                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                            <BarChart3 className="h-3 w-3" /> {topico.acertos}/{topico.questoesResolvidas} acertos
-                                        </span>
-                                    ) : null}
+                            <Progress value={porcentagem} className="h-2 mt-4" />
+                        </CardHeader>
+                        <CardContent className="pt-2">
+                            <div className="space-y-3">
+                                {topicos.slice(0, 3).map((topico) => (
+                                    <div key={topico.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                                        {getStatusIcon(topico.status, topico.rev1Concluida)}
+                                        <span className="text-sm font-medium truncate flex-1">{topico.titulo}</span>
+                                    </div>
+                                ))}
+                                <div className="flex items-center justify-center pt-2 text-xs font-semibold text-primary gap-1">
+                                    Explorar matéria <ChevronRight className="h-3 w-3" />
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                } />
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">{disciplina}</DialogTitle>
+                        <DialogDescription>Controle de leitura e revisões espaçadas.</DialogDescription>
+                    </DialogHeader>
 
-                            <div className="flex gap-2">
-                                <Button
-                                    size="sm"
-                                    variant={topico.status === "PENDENTE" ? "outline" : "secondary"}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateTopicStatus(topico.id, topico.status === "PENDENTE" ? "CONCLUIDO" : "PENDENTE");
-                                    }}
-                                >
-                                    {topico.status === "PENDENTE" ? "Marcar Lido" : "Revisar"}
-                                </Button>
+                    <div className="grid gap-4 mt-6">
+                        {topicos.map((topico) => (
+                            <div key={topico.id} className="flex items-center justify-between p-4 rounded-2xl border bg-card hover:border-primary/30 transition-all shadow-sm">
+                                <div className="flex flex-col gap-1 max-w-[55%]">
+                                    <span className="font-bold text-sm leading-tight text-foreground">{topico.titulo}</span>
+                                    <div className="flex gap-2 items-center flex-wrap">
+                                        <Badge variant={topico.status === "PENDENTE" ? "outline" : "secondary"} className="text-[9px] uppercase h-4 px-1 font-black">
+                                            {topico.status}
+                                        </Badge>
+                                        {topico.dataLeitura && (
+                                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full">
+                                                <CalendarDays className="h-3 w-3" /> Lido: {format(new Date(topico.dataLeitura), "dd/MM", { locale: ptBR })}
+                                            </span>
+                                        )}
+                                        {topico.dataRevisao1 && !topico.rev1Concluida && (
+                                            <span className="text-[10px] text-orange-600 font-bold flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                                                <Clock className="h-3 w-3" /> R1: {format(new Date(topico.dataRevisao1), "dd/MM", { locale: ptBR })}
+                                            </span>
+                                        )}
+                                        {topico.rev1Concluida && topico.dataRevisao2 && !topico.rev2Concluida && (
+                                            <span className="text-[10px] text-blue-600 font-bold flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                                <Clock className="h-3 w-3" /> R2: {format(new Date(topico.dataRevisao2), "dd/MM", { locale: ptBR })}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
 
-                                <Dialog>
-                                    <DialogTrigger render={
-                                        <Button size="sm" variant="default" onClick={() => setSelectedTopic(topico)}>
-                                            Questões
+                                <div className="flex gap-2">
+                                    {topico.status === "PENDENTE" ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs font-bold"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setTopicToRead(topico);
+                                            }}
+                                        >
+                                            Marcar Lido
                                         </Button>
-                                    } />
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Desempenho em: {topico.titulo}</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="grid gap-4 py-4">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="q">Total de Questões</Label>
-                                                <Input id="q" type="number" value={questoes} onChange={(e) => setQuestoes(e.target.value)} placeholder="0" />
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="a">Acertos</Label>
-                                                <Input id="a" type="number" value={acertos} onChange={(e) => setAcertos(e.target.value)} placeholder="0" />
-                                            </div>
-                                            <Button onClick={handleSavePerformance} disabled={isSaving}>
-                                                {isSaving ? "Salvando..." : "Salvar Progresso"}
-                                            </Button>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            variant={(!topico.rev1Concluida || !topico.rev2Concluida) ? "secondary" : "ghost"}
+                                            className="h-8 text-xs font-bold"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!topico.rev1Concluida) completeReview(topico.id, 1);
+                                                else if (!topico.rev2Concluida) completeReview(topico.id, 2);
+                                            }}
+                                            disabled={topico.rev2Concluida}
+                                        >
+                                            {topico.rev1Concluida ? (topico.rev2Concluida ? "Finalizado" : "Concluir R2") : "Concluir R1"}
+                                        </Button>
+                                    )}
+
+                                    <Button
+                                        size="sm"
+                                        variant="default"
+                                        className="h-8 text-xs font-bold shadow-md"
+                                        onClick={() => setSelectedTopic(topico)}
+                                    >
+                                        Questões
+                                    </Button>
+                                </div>
                             </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Perguntas após Marcar Lido */}
+            <Dialog open={!!topicToRead} onOpenChange={(open) => !open && setTopicToRead(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Agendar Revisão</DialogTitle>
+                        <DialogDescription>
+                            Em quantos dias você deseja realizar a primeira revisão para <b>{topicToRead?.titulo}</b>?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-3 gap-3 py-4">
+                        <Button variant="outline" onClick={() => handleMarkAsRead(1)} disabled={isSaving}>Amanhã (1d)</Button>
+                        <Button variant="outline" onClick={() => handleMarkAsRead(7)} disabled={isSaving}>7 Dias</Button>
+                        <Button variant="outline" onClick={() => handleMarkAsRead(30)} disabled={isSaving}>30 Dias</Button>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setTopicToRead(null)}>Cancelar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Questões */}
+            <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && setSelectedTopic(null)}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Desempenho em Questões</DialogTitle>
+                        <DialogDescription className="text-xs">{selectedTopic?.titulo}</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="q">Total de Questões Resolvidas</Label>
+                            <Input id="q" type="number" value={questoes} onChange={(e) => setQuestoes(e.target.value)} placeholder="0" className="h-12 text-lg font-bold" />
                         </div>
-                    ))}
-                </div>
-            </DialogContent>
-        </Dialog>
+                        <div className="grid gap-2">
+                            <Label htmlFor="a">Número de Acertos</Label>
+                            <Input id="a" type="number" value={acertos} onChange={(e) => setAcertos(e.target.value)} placeholder="0" className="h-12 text-lg font-bold border-green-200 focus:border-green-500" />
+                        </div>
+                        <Button onClick={handleSavePerformance} disabled={isSaving} className="h-12 text-lg font-bold">
+                            {isSaving ? "Salvando..." : "Salvar e Concluir"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
