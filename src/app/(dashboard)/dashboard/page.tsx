@@ -64,12 +64,12 @@ export default async function DashboardPage() {
             {materias.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                     <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {materias.map((materia) => (
+                        {materias.map((materia: any) => (
                             <SubjectCard
                                 key={materia.id}
                                 disciplina={materia.nome}
                                 importancia={materia.importancia || "Média"}
-                                topicos={materia.topicos.map(t => ({
+                                topicos={materia.topicos.map((t: any) => ({
                                     id: t.id,
                                     titulo: t.titulo,
                                     status: t.status as any,
