@@ -101,6 +101,7 @@ model Topico {
   dataLeitura    DateTime?
   dataRevisao1   DateTime?
   dataRevisao2   DateTime?
+  dataDesempenho DateTime?
   rev1Concluida  Boolean @default(false)
   rev2Concluida  Boolean @default(false)
   
