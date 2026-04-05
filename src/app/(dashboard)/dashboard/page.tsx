@@ -1,6 +1,7 @@
 import { SubjectCard } from "@/components/features/dashboard/SubjectCard";
 import { StudyAnalytics } from "@/components/features/dashboard/StudyAnalytics";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
@@ -50,8 +51,8 @@ export default async function DashboardPage() {
         total: m.topicos.reduce((acc: number, t: any) => acc + (t.questoesResolvidas || 0), 0),
     })).filter((p: any) => p.total > 0);
 
-    const globalTotal = performanceData.reduce((acc, p) => acc + p.total, 0);
-    const globalAcertos = performanceData.reduce((acc, p) => acc + p.acertos, 0);
+    const globalTotal = performanceData.reduce((acc: number, p: any) => acc + p.total, 0);
+    const globalAcertos = performanceData.reduce((acc: number, p: any) => acc + p.acertos, 0);
     const globalPercentual = globalTotal > 0 ? Math.round((globalAcertos / globalTotal) * 100) : 0;
 
     return (
