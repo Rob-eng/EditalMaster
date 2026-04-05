@@ -69,6 +69,7 @@ export async function updateTopicPerformance(topicId: string, data: { questoesRe
         data: {
             questoesResolvidas: Number(data.questoesResolvidas),
             acertos: Number(data.acertos),
+            dataDesempenho: new Date(),
             status: "CONCLUIDO" as StatusTopico
         } as any
     });

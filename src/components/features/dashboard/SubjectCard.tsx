@@ -25,6 +25,7 @@ interface Topic {
     rev1Concluida?: boolean;
     dataRevisao2?: Date | string;
     rev2Concluida?: boolean;
+    dataDesempenho?: Date | string;
 }
 
 interface SubjectCardProps {
@@ -42,7 +43,11 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
 
     const total = topicos.length;
     const concluido = topicos.filter(t => t.status === "CONCLUIDO" || t.status === "ESTUDADO").length;
-    const porcentagem = total > 0 ? Math.round((concluido / total) * 100) : 0;
+    const porcentagemEstudo = total > 0 ? Math.round((concluido / total) * 100) : 0;
+
+    const totalQuestoesMateria = topicos.reduce((acc, t) => acc + (t.questoesResolvidas || 0), 0);
+    const totalAcertosMateria = topicos.reduce((acc, t) => acc + (t.acertos || 0), 0);
+    const porcentagemAcertoMateria = totalQuestoesMateria > 0 ? Math.round((totalAcertosMateria / totalQuestoesMateria) * 100) : 0;
 
     const getStatusIcon = (status: Topic["status"], topico: Topic) => {
         const today = new Date();
@@ -101,26 +106,43 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                     <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 border-l-primary group">
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
-                                <div>
-                                    <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{disciplina}</CardTitle>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{disciplina}</CardTitle>
+                                        {totalQuestoesMateria > 0 && (
+                                            <Badge variant="secondary" className="rounded-full bg-green-50 text-green-700 border-green-100 font-black text-[10px]">
+                                                {porcentagemAcertoMateria}% ACERTO
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <CardDescription>{topicos.length} tópicos extraídos</CardDescription>
                                 </div>
-                                <Badge variant={importancia === "Alta" ? "default" : "outline"} className="rounded-full">
-                                    {porcentagem}%
+                                <Badge variant={importancia === "Alta" ? "default" : "outline"} className="rounded-full uppercase text-[10px] font-black">
+                                    {porcentagemEstudo}% Lido
                                 </Badge>
                             </div>
-                            <Progress value={porcentagem} className="h-2 mt-4" />
+                            <Progress value={porcentagemEstudo} className="h-2 mt-4" />
                         </CardHeader>
                         <CardContent className="pt-2">
                             <div className="space-y-3">
-                                {topicos.slice(0, 3).map((topico) => (
-                                    <div key={topico.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                                        {getStatusIcon(topico.status, topico)}
-                                        <span className="text-sm font-medium truncate flex-1">{topico.titulo}</span>
-                                    </div>
-                                ))}
+                                {topicos.slice(0, 3).map((topico) => {
+                                    const topicAcc = topico.questoesResolvidas && topico.questoesResolvidas > 0
+                                        ? Math.round(((topico.acertos || 0) / topico.questoesResolvidas) * 100)
+                                        : null;
+                                    return (
+                                        <div key={topico.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                                            {getStatusIcon(topico.status, topico)}
+                                            <span className="text-sm font-medium truncate flex-1">{topico.titulo}</span>
+                                            {topicAcc !== null && (
+                                                <span className="text-[10px] font-black text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 italic">
+                                                    {topicAcc}%
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                                 <div className="flex items-center justify-center pt-2 text-xs font-semibold text-primary gap-1">
-                                    Explorar matéria <ChevronRight className="h-3 w-3" />
+                                    Explorar detalhes e desempenho <ChevronRight className="h-3 w-3" />
                                 </div>
                             </div>
                         </CardContent>
@@ -128,82 +150,105 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                 } />
                 <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold">{disciplina}</DialogTitle>
-                        <DialogDescription>Controle de leitura e revisões espaçadas.</DialogDescription>
+                        <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                            {disciplina}
+                            {totalQuestoesMateria > 0 && (
+                                <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full font-black">
+                                    MÉDIA: {porcentagemAcertoMateria}%
+                                </span>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>Controle de leitura, revisões e desempenho detalhado.</DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-4 mt-6">
-                        {topicos.map((topico) => (
-                            <div key={topico.id} className="flex items-center justify-between p-4 rounded-2xl border bg-card hover:border-primary/30 transition-all shadow-sm">
-                                <div className="flex flex-col gap-1 max-w-[55%]">
-                                    <span className="font-bold text-sm leading-tight text-foreground">{topico.titulo}</span>
-                                    <div className="flex gap-2 items-center flex-wrap">
-                                        <Badge variant={topico.status === "PENDENTE" ? "outline" : "secondary"} className="text-[9px] uppercase h-4 px-1 font-black">
-                                            {topico.status}
-                                        </Badge>
-                                        {topico.dataLeitura && (
-                                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full">
-                                                <CalendarDays className="h-3 w-3" /> Lido: {format(new Date(topico.dataLeitura), "dd/MM", { locale: ptBR })}
-                                            </span>
+                        {topicos.map((topico) => {
+                            const topicAccuracy = topico.questoesResolvidas && topico.questoesResolvidas > 0
+                                ? Math.round(((topico.acertos || 0) / topico.questoesResolvidas) * 100)
+                                : null;
+
+                            return (
+                                <div key={topico.id} className="flex items-center justify-between p-4 rounded-2xl border bg-card hover:border-primary/30 transition-all shadow-sm">
+                                    <div className="flex flex-col gap-1 max-w-[55%]">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-sm leading-tight text-foreground">{topico.titulo}</span>
+                                            {topicAccuracy !== null && (
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${topicAccuracy >= 70 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                                    {topicAccuracy}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 items-center flex-wrap">
+                                            <Badge variant={topico.status === "PENDENTE" ? "outline" : "secondary"} className="text-[9px] uppercase h-4 px-1 font-black">
+                                                {topico.status}
+                                            </Badge>
+
+                                            {topico.dataDesempenho && (
+                                                <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                                                    <BarChart3 className="h-3 w-3" /> {format(new Date(topico.dataDesempenho), "dd/MM/yy", { locale: ptBR })}
+                                                </span>
+                                            )}
+
+                                            {topico.dataLeitura && (
+                                                <span className="text-[10px] text-muted-foreground flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full">
+                                                    <CalendarDays className="h-3 w-3" /> Lido: {format(new Date(topico.dataLeitura), "dd/MM", { locale: ptBR })}
+                                                </span>
+                                            )}
+
+                                            {topico.dataRevisao1 && !topico.rev1Concluida && (
+                                                <span className="text-[10px] text-orange-600 font-bold flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                                                    <Clock className="h-3 w-3" /> R1: {format(new Date(topico.dataRevisao1), "dd/MM", { locale: ptBR })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        {topico.status === "PENDENTE" ? (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs font-bold"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setTopicToRead(topico);
+                                                }}
+                                            >
+                                                Marcar Lido
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                size="sm"
+                                                variant={(!topico.rev1Concluida || !topico.rev2Concluida) ? "secondary" : "ghost"}
+                                                className="h-8 text-xs font-bold"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (!topico.rev1Concluida) completeReview(topico.id, 1);
+                                                    else if (!topico.rev2Concluida) completeReview(topico.id, 2);
+                                                }}
+                                                disabled={topico.rev2Concluida}
+                                            >
+                                                {topico.rev1Concluida ? (topico.rev2Concluida ? "Finalizado" : "Concluir R2") : "Concluir R1"}
+                                            </Button>
                                         )}
-                                        {topico.dataRevisao1 && !topico.rev1Concluida && (
-                                            <span className="text-[10px] text-orange-600 font-bold flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                                                <Clock className="h-3 w-3" /> R1: {format(new Date(topico.dataRevisao1), "dd/MM", { locale: ptBR })}
-                                            </span>
-                                        )}
-                                        {topico.rev1Concluida && topico.dataRevisao2 && !topico.rev2Concluida && (
-                                            <span className="text-[10px] text-blue-600 font-bold flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                                                <Clock className="h-3 w-3" /> R2: {format(new Date(topico.dataRevisao2), "dd/MM", { locale: ptBR })}
-                                            </span>
-                                        )}
+
+                                        <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="h-8 text-xs font-bold shadow-md"
+                                            onClick={() => setSelectedTopic(topico)}
+                                        >
+                                            Questões
+                                        </Button>
                                     </div>
                                 </div>
-
-                                <div className="flex gap-2">
-                                    {topico.status === "PENDENTE" ? (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 text-xs font-bold"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setTopicToRead(topico);
-                                            }}
-                                        >
-                                            Marcar Lido
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            size="sm"
-                                            variant={(!topico.rev1Concluida || !topico.rev2Concluida) ? "secondary" : "ghost"}
-                                            className="h-8 text-xs font-bold"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (!topico.rev1Concluida) completeReview(topico.id, 1);
-                                                else if (!topico.rev2Concluida) completeReview(topico.id, 2);
-                                            }}
-                                            disabled={topico.rev2Concluida}
-                                        >
-                                            {topico.rev1Concluida ? (topico.rev2Concluida ? "Finalizado" : "Concluir R2") : "Concluir R1"}
-                                        </Button>
-                                    )}
-
-                                    <Button
-                                        size="sm"
-                                        variant="default"
-                                        className="h-8 text-xs font-bold shadow-md"
-                                        onClick={() => setSelectedTopic(topico)}
-                                    >
-                                        Questões
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Modal de Perguntas após Marcar Lido */}
+            {/* Modal de Agendamento */}
             <Dialog open={!!topicToRead} onOpenChange={(open) => !open && setTopicToRead(null)}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
@@ -213,9 +258,9 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-3 gap-3 py-4">
-                        <Button variant="outline" onClick={() => handleMarkAsRead(1)} disabled={isSaving}>Amanhã (1d)</Button>
-                        <Button variant="outline" onClick={() => handleMarkAsRead(7)} disabled={isSaving}>7 Dias</Button>
-                        <Button variant="outline" onClick={() => handleMarkAsRead(30)} disabled={isSaving}>30 Dias</Button>
+                        <Button variant="outline" onClick={() => handleMarkAsRead(1)} disabled={isSaving}>1 dia</Button>
+                        <Button variant="outline" onClick={() => handleMarkAsRead(7)} disabled={isSaving}>7 dias</Button>
+                        <Button variant="outline" onClick={() => handleMarkAsRead(30)} disabled={isSaving}>30 dias</Button>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setTopicToRead(null)}>Cancelar</Button>

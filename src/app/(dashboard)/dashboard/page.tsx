@@ -50,11 +50,22 @@ export default async function DashboardPage() {
         total: m.topicos.reduce((acc: number, t: any) => acc + (t.questoesResolvidas || 0), 0),
     })).filter((p: any) => p.total > 0);
 
+    const globalTotal = performanceData.reduce((acc, p) => acc + p.total, 0);
+    const globalAcertos = performanceData.reduce((acc, p) => acc + p.acertos, 0);
+    const globalPercentual = globalTotal > 0 ? Math.round((globalAcertos / globalTotal) * 100) : 0;
+
     return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter">O que estudar hoje?</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-4xl font-black tracking-tighter">O que estudar hoje?</h1>
+                        {globalTotal > 0 && (
+                            <Badge className="bg-green-600 text-white rounded-full font-black text-xs px-3 h-7">
+                                {globalPercentual}% DE ACERTO GERAL
+                            </Badge>
+                        )}
+                    </div>
                     <p className="text-muted-foreground mt-2 font-medium">
                         Seu progresso real baseado no edital carregado.
                     </p>
@@ -85,7 +96,8 @@ export default async function DashboardPage() {
                                     dataRevisao1: t.dataRevisao1,
                                     dataRevisao2: t.dataRevisao2,
                                     rev1Concluida: t.rev1Concluida,
-                                    rev2Concluida: t.rev2Concluida
+                                    rev2Concluida: t.rev2Concluida,
+                                    dataDesempenho: t.dataDesempenho
                                 }))}
                             />
                         ))}
