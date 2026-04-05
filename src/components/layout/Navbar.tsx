@@ -23,6 +23,7 @@ export async function Navbar() {
                             <>
                                 <Link href="/dashboard" className="transition-colors hover:text-foreground">Dashboard</Link>
                                 <Link href="/agenda" className="transition-colors hover:text-foreground">Agenda</Link>
+                                <Link href="/analytics" className="transition-colors hover:text-foreground font-bold text-primary">Analytics</Link>
                             </>
                         )}
                     </nav>
