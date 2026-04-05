@@ -3,10 +3,10 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart3, TrendingUp, Target, AlertTriangle } from "lucide-react";
+import { EvolutionChart } from "@/components/features/analytics/Charts";
 
 export default async function AnalyticsPage() {
     const session = await auth();
@@ -107,29 +107,12 @@ export default async function AnalyticsPage() {
                         </CardTitle>
                         <CardDescription>Quantidade de questões vs acertos realizados.</CardDescription>
                     </CardHeader>
+                    import {EvolutionChart} from "@/components/features/analytics/Charts";
+
+                    // ... (Rest of the component logic remains same until return)
+
                     <CardContent className="h-[400px] pt-6">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorQ" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorA" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                                <XAxis dataKey="label" fontSize={10} tickLine={false} axisLine={false} />
-                                <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
-                                />
-                                <Area type="monotone" dataKey="questões" stroke="#3b82f6" fillOpacity={1} fill="url(#colorQ)" strokeWidth={3} />
-                                <Area type="monotone" dataKey="acertos" stroke="#22c55e" fillOpacity={1} fill="url(#colorA)" strokeWidth={3} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        <EvolutionChart data={chartData} />
                     </CardContent>
                 </Card>
 
