@@ -9,7 +9,7 @@ export interface EditalSubject {
 }
 
 /**
- * Serviço de parsing Inteligente via REST API do Gemini (mais transparente para debug).
+ * Serviço de parsing Inteligente via REST API do Gemini com diagnóstico de modelos.
  */
 export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubject[]> {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -18,8 +18,22 @@ export async function parseEditalWithAI(pdfBase64: string): Promise<EditalSubjec
         throw new Error("GEMINI_API_KEY não configurada no ambiente.");
     }
 
-    // Tentar o modelo flash via REST
-    const model = "gemini-1.5-flash";
+    // DIAGNÓSTICO: Listar modelos disponíveis
+    try {
+        const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const listResponse = await fetch(listUrl);
+        if (listResponse.ok) {
+            const listData = await listResponse.json();
+            const modelNames = listData.models?.map((m: any) => m.name).join(", ");
+            console.log("LOG DIAGNÓSTICO - Modelos disponíveis para sua chave:", modelNames);
+        } else {
+            console.error("LOG DIAGNÓSTICO - Falha ao listar modelos:", await listResponse.text());
+        }
+    } catch (err) {
+        console.error("LOG DIAGNÓSTICO - Erro na listagem:", err);
+    }
+
+    const model = "gemini-1.5-flash"; // Nome padrão
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     console.log(`Iniciando chamada REST para Gemini (${model})...`);
