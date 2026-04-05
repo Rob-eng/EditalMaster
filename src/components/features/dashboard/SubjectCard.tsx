@@ -58,6 +58,52 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
     const [customDate, setCustomDate] = useState<Date | undefined>(new Date());
     const [isSaving, setIsSaving] = useState(false);
 
+    // Estados para gestão de tópicos
+    const [newTopicTitle, setNewTopicTitle] = useState("");
+    const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
+    const [editTopicTitle, setEditTopicTitle] = useState("");
+
+    const handleAddTopic = async () => {
+        if (!newTopicTitle.trim()) return;
+        setIsSaving(true);
+        try {
+            await addTopico(id, newTopicTitle);
+            setNewTopicTitle("");
+            toast.success("Tópico adicionado!");
+        } catch (error) {
+            toast.error("Erro ao adicionar.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteTopic = async (tid: string) => {
+        if (!confirm("Tem certeza que deseja excluir este tópico?")) return;
+        setIsSaving(true);
+        try {
+            await deleteTopico(tid);
+            toast.success("Tópico removido!");
+        } catch (error) {
+            toast.error("Erro ao remover.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleUpdateTopicTitle = async (tid: string) => {
+        if (!editTopicTitle.trim()) return;
+        setIsSaving(true);
+        try {
+            await updateTopicoTitle(tid, editTopicTitle);
+            setEditingTopicId(null);
+            toast.success("Título atualizado!");
+        } catch (error) {
+            toast.error("Erro ao atualizar!");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const total = topicos.length;
     const concluido = topicos.filter(t => t.status === "CONCLUIDO" || t.status === "ESTUDADO").length;
     const porcentagemEstudo = total > 0 ? Math.round((concluido / total) * 100) : 0;
