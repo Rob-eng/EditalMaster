@@ -38,21 +38,18 @@ export default async function AnalyticsPage() {
 
     last14Days.forEach(date => evolutionMap.set(date, { date, questões: 0, acertos: 0 }));
 
-    sessoes.forEach(s => {
+    (sessoes as any[]).forEach(s => {
         if (!s.dataRealizada) return;
         const dateKey = format(startOfDay(new Date(s.dataRealizada)), "yyyy-MM-dd");
         if (evolutionMap.has(dateKey)) {
             const current = evolutionMap.get(dateKey);
-            // Usamos duracaoMin como mock de quantidade de questões se fosse salvo lá
-            // Vamos buscar o acerto real do tópico na data (simplificado para este MVP)
             current.questões += s.duracaoMin || 0;
-            // Cálculo proporcional de acertos baseado no estado atual do tópico
             const accRate = (s.topico.acertos || 0) / (s.topico.questoesResolvidas || 1);
             current.acertos += Math.round((s.duracaoMin || 0) * (accRate > 1 ? 1 : accRate));
         }
     });
 
-    const chartData = Array.from(evolutionMap.values()).map(d => ({
+    const chartData = Array.from(evolutionMap.values()).map((d: any) => ({
         ...d,
         label: format(new Date(d.date), "dd/MM")
     }));
@@ -62,12 +59,12 @@ export default async function AnalyticsPage() {
         where: {
             materia: { edital: { userId: session.user.id } },
             questoesResolvidas: { gt: 0 }
-        },
+        } as any,
         include: { materia: true },
-        orderBy: { acertos: 'asc' }
+        orderBy: { acertos: 'asc' } as any
     });
 
-    const weakTopics = allTopicos
+    const weakTopics = (allTopicos as any[])
         .map(t => ({
             id: t.id,
             titulo: t.titulo,
@@ -78,8 +75,8 @@ export default async function AnalyticsPage() {
         .sort((a, b) => a.taxa - b.taxa)
         .slice(0, 5);
 
-    const totalGeralQuestoes = allTopicos.reduce((acc, t) => acc + t.questoesResolvidas, 0);
-    const totalGeralAcertos = allTopicos.reduce((acc, t) => acc + t.acertos, 0);
+    const totalGeralQuestoes = (allTopicos as any[]).reduce((acc, t) => acc + (t.questoesResolvidas || 0), 0);
+    const totalGeralAcertos = (allTopicos as any[]).reduce((acc, t) => acc + (t.acertos || 0), 0);
     const mediaGeral = totalGeralQuestoes > 0 ? Math.round((totalGeralAcertos / totalGeralQuestoes) * 100) : 0;
 
     return (
