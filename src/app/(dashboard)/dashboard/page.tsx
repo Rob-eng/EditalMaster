@@ -44,6 +44,12 @@ export default async function DashboardPage() {
         { name: "Pendente", value: stats.PENDENTE, color: "#94a3b8" },
     ];
 
+    const performanceData = materias.map((m: any) => ({
+        subject: m.nome,
+        acertos: m.topicos.reduce((acc: number, t: any) => acc + (t.acertos || 0), 0),
+        total: m.topicos.reduce((acc: number, t: any) => acc + (t.questoesResolvidas || 0), 0),
+    })).filter(p => p.total > 0);
+
     return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-center">
@@ -85,7 +91,7 @@ export default async function DashboardPage() {
                         ))}
                     </div>
                     <div className="lg:col-span-1">
-                        <StudyAnalytics data={analyticsData} />
+                        <StudyAnalytics data={analyticsData} performanceData={performanceData} />
                     </div>
                 </div>
             ) : (

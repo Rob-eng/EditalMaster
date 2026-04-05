@@ -115,7 +115,7 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                             <div className="space-y-3">
                                 {topicos.slice(0, 3).map((topico) => (
                                     <div key={topico.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                                        {getStatusIcon(topico.status, topico.rev1Concluida)}
+                                        {getStatusIcon(topico.status, topico)}
                                         <span className="text-sm font-medium truncate flex-1">{topico.titulo}</span>
                                     </div>
                                 ))}
