@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle, joinMaterias } from "@/lib/actions/study-actions";
+import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle, joinMaterias, addTopico, deleteTopico } from "@/lib/actions/study-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
