@@ -67,7 +67,7 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
 
     return (
         <Dialog>
-            <DialogTrigger asChild>
+            <DialogTrigger render={
                 <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 border-l-primary group">
                     <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -95,7 +95,7 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                         </div>
                     </CardContent>
                 </Card>
-            </DialogTrigger>
+            } />
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold">{disciplina}</DialogTitle>
@@ -123,17 +123,20 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
                                 <Button
                                     size="sm"
                                     variant={topico.status === "PENDENTE" ? "outline" : "secondary"}
-                                    onClick={() => updateTopicStatus(topico.id, topico.status === "PENDENTE" ? "CONCLUIDO" : "PENDENTE")}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateTopicStatus(topico.id, topico.status === "PENDENTE" ? "CONCLUIDO" : "PENDENTE");
+                                    }}
                                 >
                                     {topico.status === "PENDENTE" ? "Marcar Lido" : "Revisar"}
                                 </Button>
 
                                 <Dialog>
-                                    <DialogTrigger asChild>
+                                    <DialogTrigger render={
                                         <Button size="sm" variant="default" onClick={() => setSelectedTopic(topico)}>
                                             Questões
                                         </Button>
-                                    </DialogTrigger>
+                                    } />
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>Desempenho em: {topico.titulo}</DialogTitle>
