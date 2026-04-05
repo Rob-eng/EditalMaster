@@ -44,8 +44,14 @@ export function SubjectCard({ disciplina, topicos, importancia }: SubjectCardPro
     const concluido = topicos.filter(t => t.status === "CONCLUIDO" || t.status === "ESTUDADO").length;
     const porcentagem = total > 0 ? Math.round((concluido / total) * 100) : 0;
 
-    const getStatusIcon = (status: Topic["status"], rev1?: boolean) => {
-        if (status === "ESTUDADO" && !rev1) return <Clock className="h-4 w-4 text-amber-500" />;
+    const getStatusIcon = (status: Topic["status"], topico: Topic) => {
+        const today = new Date();
+        const isLate = (topico.dataRevisao1 && !topico.rev1Concluida && new Date(topico.dataRevisao1) < today) ||
+            (topico.rev1Concluida && topico.dataRevisao2 && !topico.rev2Concluida && new Date(topico.dataRevisao2) < today);
+
+        if (isLate) return <Clock className="h-4 w-4 text-red-500 animate-pulse" />;
+        if (status === "ESTUDADO" && !topico.rev1Concluida) return <Clock className="h-4 w-4 text-amber-500" />;
+
         switch (status) {
             case "CONCLUIDO": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
             case "ESTUDADO": return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
