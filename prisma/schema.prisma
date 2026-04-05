@@ -95,6 +95,8 @@ model Topico {
   
   titulo         String
   status         StatusTopico @default(PENDENTE)
+  questoesResolvidas Int @default(0)
+  acertos        Int @default(0)
   
   sessoes        SessaoEstudo[]
   revisoes       Revisao[]
