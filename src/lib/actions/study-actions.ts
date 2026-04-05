@@ -184,6 +184,30 @@ export async function updateTopicoTitle(topicId: string, titulo: string) {
     revalidatePath("/dashboard");
 }
 
+export async function addTopico(materiaId: string, titulo: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    await prisma.topico.create({
+        data: {
+            materiaId,
+            titulo,
+            status: "PENDENTE"
+        }
+    });
+    revalidatePath("/dashboard");
+}
+
+export async function deleteTopico(topicId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    await prisma.topico.delete({
+        where: { id: topicId }
+    });
+    revalidatePath("/dashboard");
+}
+
 export async function joinMaterias(sourceMateriaId: string, targetMateriaId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Não autorizado");

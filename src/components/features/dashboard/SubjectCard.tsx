@@ -241,10 +241,23 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                                 : null;
 
                             return (
-                                <div key={topico.id} className="flex items-center justify-between p-3 rounded-xl border bg-card hover:border-primary/30 transition-all shadow-sm">
-                                    <div className="flex flex-col gap-1 max-w-[60%]">
+                                <div key={topico.id} className="flex items-center justify-between p-3 rounded-xl border bg-card hover:border-primary/30 transition-all shadow-sm group">
+                                    <div className="flex flex-col gap-1 max-w-[60%] flex-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-sm leading-tight text-foreground">{topico.titulo}</span>
+                                            {editingTopicId === topico.id ? (
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <Input
+                                                        value={editTopicTitle}
+                                                        onChange={(e) => setEditTopicTitle(e.target.value)}
+                                                        className="h-7 text-xs py-0"
+                                                        autoFocus
+                                                    />
+                                                    <Button size="icon" className="h-6 w-6" onClick={() => handleUpdateTopicTitle(topico.id)}><Check className="h-3 w-3" /></Button>
+                                                </div>
+                                            ) : (
+                                                <span className="font-bold text-xs leading-tight text-foreground truncate">{topico.titulo}</span>
+                                            )}
+
                                             {topicAccuracy !== null && (
                                                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${topicAccuracy >= 70 ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-700'}`}>
                                                     {topicAccuracy}%
@@ -252,7 +265,7 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                                             )}
                                         </div>
                                         <div className="flex gap-2 items-center flex-wrap">
-                                            <Badge variant={topico.status === "PENDENTE" ? "outline" : "secondary"} className="text-[9px] uppercase h-4 px-1 font-black">
+                                            <Badge variant={topico.status === "PENDENTE" ? "outline" : "secondary"} className="text-[9px] uppercase h-3 px-1 font-black">
                                                 {topico.status}
                                             </Badge>
 
@@ -288,7 +301,19 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-1.5">
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => {
+                                            setEditingTopicId(topico.id);
+                                            setEditTopicTitle(topico.titulo);
+                                        }}>
+                                            <Settings2 className="h-3 w-3" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500" onClick={() => handleDeleteTopic(topico.id)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex gap-1.5 ml-2">
                                         {topico.status === "PENDENTE" ? (
                                             <Button
                                                 size="sm"
@@ -328,6 +353,19 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                                 </div>
                             );
                         })}
+
+                        <div className="mt-4 flex gap-2 p-2 bg-muted/20 border-t border-dashed">
+                            <Input
+                                placeholder="Adicionar novo tópico..."
+                                value={newTopicTitle}
+                                onChange={(e) => setNewTopicTitle(e.target.value)}
+                                className="h-8 text-xs"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddTopic()}
+                            />
+                            <Button size="sm" className="h-8 px-4 font-bold" onClick={handleAddTopic} disabled={isSaving}>
+                                + Add
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
