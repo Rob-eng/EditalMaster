@@ -85,6 +85,7 @@ export default async function DashboardPage() {
                         {materias.map((materia: any) => (
                             <SubjectCard
                                 key={materia.id}
+                                id={materia.id}
                                 disciplina={materia.nome}
                                 importancia={materia.importancia || "Média"}
                                 topicos={materia.topicos.map((t: any) => ({
