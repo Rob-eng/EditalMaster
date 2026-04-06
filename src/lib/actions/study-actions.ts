@@ -245,7 +245,7 @@ export async function deleteStudySession(sessionId: string) {
         data: {
             questoesResolvidas: Math.max(0, currentTotal - questionsToRemove),
             acertos: Math.max(0, currentHits - hitsToRemove)
-        }
+        } as any
     });
 
     await prisma.sessaoEstudo.delete({
@@ -267,7 +267,7 @@ export async function resetTopicPerformance(topicId: string) {
                 questoesResolvidas: 0,
                 acertos: 0,
                 dataDesempenho: null
-            }
+            } as any
         }),
         prisma.sessaoEstudo.deleteMany({
             where: { topicoId: topicId }
