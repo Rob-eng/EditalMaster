@@ -20,7 +20,14 @@ export default async function DashboardPage() {
         include: {
             materias: {
                 include: {
-                    topicos: true
+                    topicos: {
+                        include: {
+                            sessoes: {
+                                orderBy: { dataRealizada: 'desc' },
+                                take: 10
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -28,6 +35,7 @@ export default async function DashboardPage() {
     });
 
     const materias = edital?.materias || [];
+    const listaMaterias = materias.map((m: any) => ({ id: m.id, nome: m.nome }));
 
     // Cálculo de Analytics Real
     const allTopicos = materias.flatMap((m: any) => m.topicos);
@@ -99,8 +107,10 @@ export default async function DashboardPage() {
                                     dataRevisao2: t.dataRevisao2,
                                     rev1Concluida: t.rev1Concluida,
                                     rev2Concluida: t.rev2Concluida,
-                                    dataDesempenho: t.dataDesempenho
+                                    dataDesempenho: t.dataDesempenho,
+                                    sessoes: t.sessoes || []
                                 }))}
+                                listaMaterias={listaMaterias}
                             />
                         ))}
                     </div>
