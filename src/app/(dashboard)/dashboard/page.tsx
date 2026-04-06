@@ -34,7 +34,15 @@ export default async function DashboardPage() {
         orderBy: { createdAt: 'desc' }
     });
 
-    const materias = edital?.materias || [];
+    const materiasRaw = edital?.materias || [];
+    const priorityOrder: Record<string, number> = { "Alta": 1, "Média": 2, "Baixa": 3 };
+
+    const materias = [...materiasRaw].sort((a, b) => {
+        const pA = priorityOrder[a.importancia || "Média"] || 4;
+        const pB = priorityOrder[b.importancia || "Média"] || 4;
+        return pA - pB;
+    });
+
     const listaMaterias = materias.map((m: any) => ({ id: m.id, nome: m.nome }));
 
     // Cálculo de Analytics Real
