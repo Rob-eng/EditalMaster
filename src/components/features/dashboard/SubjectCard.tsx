@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle, joinMaterias, addTopico, deleteTopico } from "@/lib/actions/study-actions";
+import { updateTopicStatus, updateTopicPerformance, markAsReadWithReview, completeReview, editMateria, splitMateria, updateTopicoTitle, joinMaterias, addTopico, deleteTopico, moveTopicsToMateria, deleteStudySession, resetTopicPerformance } from "@/lib/actions/study-actions";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,12 +23,14 @@ interface Topic {
     status: "PENDENTE" | "ESTUDADO" | "REVISAO" | "ATRASADO" | "CONCLUIDO";
     questoesResolvidas?: number;
     acertos?: number;
-    dataLeitura?: Date | string;
-    dataRevisao1?: Date | string;
+    dataLeitura?: Date | string | null;
+    dataRevisao1?: Date | string | null;
+    dataRevisao2?: Date | string | null;
     rev1Concluida?: boolean;
-    dataRevisao2?: Date | string;
+    dataRevisao2_?: Date | string | null; // fix duplicate key if any
     rev2Concluida?: boolean;
-    dataDesempenho?: Date | string;
+    dataDesempenho?: Date | string | null;
+    sessoes?: any[];
 }
 
 interface SubjectCardProps {
@@ -36,9 +38,10 @@ interface SubjectCardProps {
     disciplina: string;
     topicos: Topic[];
     importancia?: string;
+    listaMaterias?: { id: string; nome: string }[];
 }
 
-export function SubjectCard({ id, disciplina, topicos, importancia: initialImportancia }: SubjectCardProps) {
+export function SubjectCard({ id, disciplina, topicos, importancia: initialImportancia, listaMaterias = [] }: SubjectCardProps) {
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
     const [topicToRead, setTopicToRead] = useState<Topic | null>(null);
     const [topicToReview, setTopicToReview] = useState<Topic | null>(null);
@@ -50,8 +53,60 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
 
     // Divisão Matéria
     const [isSplitting, setIsSplitting] = useState(false);
+    const [splitType, setSplitType] = useState<"NEW" | "EXISTING">("NEW");
+    const [targetMateriaId, setTargetMateriaId] = useState("");
     const [splitName, setSplitName] = useState(`${disciplina} - Parte 2`);
     const [selectedTopicsForSplit, setSelectedTopicsForSplit] = useState<string[]>([]);
+
+    async function handleMoveTopics() {
+        if (selectedTopicsForSplit.length === 0) return;
+        setIsSaving(true);
+        try {
+            if (splitType === "NEW") {
+                await splitMateria(id, splitName, selectedTopicsForSplit);
+                toast.success("Matéria dividida com sucesso!");
+            } else {
+                if (!targetMateriaId) {
+                    toast.error("Selecione uma matéria de destino");
+                    return;
+                }
+                await moveTopicsToMateria(selectedTopicsForSplit, targetMateriaId);
+                toast.success("Tópicos movidos com sucesso!");
+            }
+            setIsSplitting(false);
+            setSelectedTopicsForSplit([]);
+        } catch (error) {
+            toast.error("Erro ao mover tópicos");
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    async function handleDeleteSession(sessionId: string) {
+        if (!confirm("Tem certeza que deseja excluir esta inserção? Seus dados de desempenho serão recalculados.")) return;
+        setIsSaving(true);
+        try {
+            await deleteStudySession(sessionId);
+            toast.success("Inserção excluída com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao excluir inserção");
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    async function handleResetPerformance(topicId: string) {
+        if (!confirm("Deseja resetar todo o histórico de desempenho deste tópico?")) return;
+        setIsSaving(true);
+        try {
+            await resetTopicPerformance(topicId);
+            toast.success("Desempenho resetado!");
+        } catch (error) {
+            toast.error("Erro ao resetar desempenho");
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
     const [questoes, setQuestoes] = useState("");
     const [acertos, setAcertos] = useState("");
@@ -481,25 +536,52 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                 </DialogContent>
             </Dialog>
 
-            {/* Modal de Questões */}
             <Dialog open={!!selectedTopic} onOpenChange={(open) => !open && setSelectedTopic(null)}>
-                <DialogContent className="sm:max-w-[400px]">
+                <DialogContent className="sm:max-w-[450px]">
                     <DialogHeader>
-                        <DialogTitle>Desempenho em Questões</DialogTitle>
-                        <DialogDescription className="text-xs">{selectedTopic?.titulo}</DialogDescription>
+                        <div className="flex justify-between items-start">
+                            <DialogTitle>Desempenho em Questões</DialogTitle>
+                            <Button variant="ghost" size="sm" className="h-8 text-[10px] text-red-500 font-bold hover:bg-red-50" onClick={() => selectedTopic && handleResetPerformance(selectedTopic.id)}>
+                                <Trash2 className="h-3 w-3 mr-1" /> Resetar Tudo
+                            </Button>
+                        </div>
+                        <DialogDescription className="text-xs font-bold">{selectedTopic?.titulo}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-6 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="q">Total de Questões Resolvidas</Label>
-                            <Input id="q" type="number" value={questoes} onChange={(e) => setQuestoes(e.target.value)} placeholder="0" className="h-12 text-lg font-bold" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="q" className="text-[10px] uppercase font-bold text-muted-foreground">Total Resolvidas</Label>
+                                <Input id="q" type="number" value={questoes} onChange={(e) => setQuestoes(e.target.value)} placeholder="0" className="h-10 text-lg font-bold" />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="a" className="text-[10px] uppercase font-bold text-muted-foreground">Número de Acertos</Label>
+                                <Input id="a" type="number" value={acertos} onChange={(e) => setAcertos(e.target.value)} placeholder="0" className="h-10 text-lg font-bold border-green-200 focus:border-green-500" />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="a">Número de Acertos</Label>
-                            <Input id="a" type="number" value={acertos} onChange={(e) => setAcertos(e.target.value)} placeholder="0" className="h-12 text-lg font-bold border-green-200 focus:border-green-500" />
-                        </div>
-                        <Button onClick={handleSavePerformance} disabled={isSaving} className="h-12 text-lg font-bold">
-                            {isSaving ? "Salvando..." : "Salvar e Concluir"}
+                        <Button onClick={handleSavePerformance} disabled={isSaving} className="h-10 text-md font-bold w-full bg-primary shadow-lg">
+                            {isSaving ? "Salvando..." : "Registrar Nova Entrada"}
                         </Button>
+
+                        {selectedTopic?.sessoes && selectedTopic.sessoes.length > 0 && (
+                            <div className="mt-4 space-y-3">
+                                <Label className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-2">
+                                    <Clock className="h-3 w-3" /> Histórico de Inserções (Últimas 10)
+                                </Label>
+                                <div className="max-h-[150px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                    {selectedTopic.sessoes.map((s: any) => (
+                                        <div key={s.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/40 border border-muted-foreground/10 text-[11px]">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold">{format(new Date(s.dataRealizada || s.createdAt), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}</span>
+                                                <span className="text-muted-foreground">{s.duracaoMin} questões registradas</span>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => handleDeleteSession(s.id)}>
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
@@ -542,37 +624,73 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
             <Dialog open={isSplitting} onOpenChange={(open) => { setIsSplitting(open); if (!open) setSelectedTopicsForSplit([]); }}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle>Dividir Matéria</DialogTitle>
-                        <DialogDescription>Selecione os tópicos que deseja mover para uma nova matéria.</DialogDescription>
+                        <DialogTitle>Mover ou Dividir Conteúdo</DialogTitle>
+                        <DialogDescription>Selecione os tópicos e decida para onde eles devem ir.</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label>Nome da Nova Matéria</Label>
-                            <Input value={splitName} onChange={(e) => setSplitName(e.target.value)} />
+                    <div className="grid gap-6 py-4">
+                        <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                            <Button
+                                variant={splitType === "NEW" ? "default" : "ghost"}
+                                className="flex-1 text-xs h-8 font-bold"
+                                onClick={() => setSplitType("NEW")}
+                            >
+                                Nova Matéria
+                            </Button>
+                            <Button
+                                variant={splitType === "EXISTING" ? "default" : "ghost"}
+                                className="flex-1 text-xs h-8 font-bold"
+                                onClick={() => setSplitType("EXISTING")}
+                            >
+                                Matéria Existente
+                            </Button>
                         </div>
-                        <Label className="mt-2">Tópicos para Mover ({selectedTopicsForSplit.length})</Label>
-                        <div className="max-h-[300px] overflow-y-auto border rounded-xl p-2 space-y-1">
-                            {topicos.map((t) => (
-                                <div
-                                    key={t.id}
-                                    className={cn(
-                                        "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
-                                        selectedTopicsForSplit.includes(t.id) ? "bg-primary/10 border-primary/20" : "hover:bg-muted"
-                                    )}
-                                    onClick={() => toggleTopicSelection(t.id)}
+
+                        {splitType === "NEW" ? (
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome da Nova Matéria</Label>
+                                <Input value={splitName} onChange={(e) => setSplitName(e.target.value)} placeholder="Ex: Direito Civil - Parte 2" />
+                            </div>
+                        ) : (
+                            <div className="grid gap-2">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Selecionar Destino</Label>
+                                <select
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                    value={targetMateriaId}
+                                    onChange={(e) => setTargetMateriaId(e.target.value)}
                                 >
-                                    <div className={cn(
-                                        "w-4 h-4 rounded border flex items-center justify-center",
-                                        selectedTopicsForSplit.includes(t.id) ? "bg-primary border-primary" : "border-muted-foreground/30"
-                                    )}>
-                                        {selectedTopicsForSplit.includes(t.id) && <Check className="h-3 w-3 text-white" />}
+                                    <option value="">Selecione uma matéria...</option>
+                                    {listaMaterias.filter(m => m.id !== id).map(m => (
+                                        <option key={m.id} value={m.id}>{m.nome}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Tópicos para Mover ({selectedTopicsForSplit.length})</Label>
+                            <div className="max-h-[200px] overflow-y-auto border rounded-xl p-2 space-y-1 bg-muted/20">
+                                {topicos.map((t) => (
+                                    <div
+                                        key={t.id}
+                                        className={cn(
+                                            "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors border border-transparent",
+                                            selectedTopicsForSplit.includes(t.id) ? "bg-primary/5 border-primary/20" : "hover:bg-muted"
+                                        )}
+                                        onClick={() => toggleTopicSelection(t.id)}
+                                    >
+                                        <div className={cn(
+                                            "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                            selectedTopicsForSplit.includes(t.id) ? "bg-primary border-primary scale-110" : "border-muted-foreground/30"
+                                        )}>
+                                            {selectedTopicsForSplit.includes(t.id) && <Check className="h-3 w-3 text-white" />}
+                                        </div>
+                                        <span className="text-xs font-bold truncate">{t.titulo}</span>
                                     </div>
-                                    <span className="text-sm truncate">{t.titulo}</span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                        <Button onClick={handleSplit} disabled={isSaving || selectedTopicsForSplit.length === 0} className="mt-4">
-                            Mover Tópicos Selecionados
+                        <Button onClick={handleMoveTopics} disabled={isSaving || selectedTopicsForSplit.length === 0} className="w-full h-12 font-black shadow-xl">
+                            {isSaving ? "Processando..." : (splitType === "NEW" ? "Confirmar Divisão" : "Mover para Matéria")}
                         </Button>
                     </div>
                 </DialogContent>
