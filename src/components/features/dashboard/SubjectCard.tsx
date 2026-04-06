@@ -258,16 +258,30 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
         );
     };
 
+    const priorityColors = {
+        "Alta": "border-l-[#1e3a8a] text-[#1e3a8a] bg-[#1e3a8a]/5",
+        "Média": "border-l-[#2563eb] text-[#2563eb] bg-[#2563eb]/5",
+        "Baixa": "border-l-[#93c5fd] text-[#93c5fd] bg-[#93c5fd]/5",
+    };
+
+    const currentColors = priorityColors[initialImportancia as keyof typeof priorityColors] || priorityColors["Média"];
+
     return (
         <>
             <Dialog>
                 <DialogTrigger render={
-                    <Card className="overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 border-l-primary group relative">
+                    <Card className={cn(
+                        "overflow-hidden transition-all hover:shadow-lg cursor-pointer border-l-4 group relative",
+                        currentColors.split(" ")[0]
+                    )}>
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{disciplina}</CardTitle>
+                                        <CardTitle className={cn(
+                                            "text-xl font-bold transition-colors",
+                                            "group-hover:text-primary"
+                                        )}>{disciplina}</CardTitle>
                                         {totalQuestoesMateria > 0 && (
                                             <Badge variant="secondary" className="rounded-full bg-green-50 text-green-700 border-green-100 font-black text-[10px]">
                                                 {porcentagemAcertoMateria}% ACERTO
@@ -277,7 +291,15 @@ export function SubjectCard({ id, disciplina, topicos, importancia: initialImpor
                                     <CardDescription>{topicos.length} tópicos</CardDescription>
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
-                                    <Badge variant={initialImportancia === "Alta" ? "default" : "outline"} className="rounded-full uppercase text-[9px] font-black">
+                                    <Badge className={cn(
+                                        "rounded-full uppercase text-[9px] font-black border-none",
+                                        initialImportancia === "Alta" ? "bg-[#1e3a8a] text-white" :
+                                            initialImportancia === "Média" ? "bg-[#2563eb] text-white" :
+                                                "bg-[#93c5fd] text-[#1e3a8a]"
+                                    )}>
+                                        {initialImportancia}
+                                    </Badge>
+                                    <Badge variant="outline" className="rounded-full uppercase text-[9px] font-black">
                                         {porcentagemEstudo}% Estudado
                                     </Badge>
                                     <Button
