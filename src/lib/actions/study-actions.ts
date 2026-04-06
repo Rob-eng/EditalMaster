@@ -208,6 +208,76 @@ export async function deleteTopico(topicId: string) {
     revalidatePath("/dashboard");
 }
 
+export async function moveTopicsToMateria(topicIds: string[], targetMateriaId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    await prisma.topico.updateMany({
+        where: { id: { in: topicIds } },
+        data: { materiaId: targetMateriaId }
+    });
+
+    revalidatePath("/dashboard");
+}
+
+export async function deleteStudySession(sessionId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    // Primeiro buscamos a sessão para saber o quanto subtrair do tópico
+    const sessao = await prisma.sessaoEstudo.findUnique({
+        where: { id: sessionId },
+        include: { topico: true }
+    });
+
+    if (!sessao) throw new Error("Sessão não encontrada");
+
+    // Subtrai do tópico
+    const questionsToRemove = sessao.duracaoMin || 0;
+    const currentTotal = sessao.topico.questoesResolvidas || 0;
+    const currentHits = sessao.topico.acertos || 0;
+
+    // Proporção de acertos estimada para subtrair (já que não salvamos acertos na SessaoEstudo V3)
+    const hitsToRemove = Math.min(currentHits, Math.round(questionsToRemove * (currentHits / (currentTotal || 1))));
+
+    await prisma.topico.update({
+        where: { id: sessao.topicoId },
+        data: {
+            questoesResolvidas: Math.max(0, currentTotal - questionsToRemove),
+            acertos: Math.max(0, currentHits - hitsToRemove)
+        }
+    });
+
+    await prisma.sessaoEstudo.delete({
+        where: { id: sessionId }
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/analytics");
+}
+
+export async function resetTopicPerformance(topicId: string) {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Não autorizado");
+
+    await prisma.$transaction([
+        prisma.topico.update({
+            where: { id: topicId },
+            data: {
+                questoesResolvidas: 0,
+                acertos: 0,
+                dataDesempenho: null
+            }
+        }),
+        prisma.sessaoEstudo.deleteMany({
+            where: { topicoId: topicId }
+        })
+    ]);
+
+    revalidatePath("/dashboard");
+    revalidatePath("/analytics");
+}
+
 export async function joinMaterias(sourceMateriaId: string, targetMateriaId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Não autorizado");
